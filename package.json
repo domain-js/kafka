@@ -11,7 +11,10 @@
     "type": "git",
     "url": "git+ssh://git@github.com/domain-js/kafka/.git"
   },
-  "keywords": ["kafka", "domain.js"],
+  "keywords": [
+    "kafka",
+    "domain.js"
+  ],
   "author": "Redstone Zhao",
   "license": "MIT",
   "bugs": {
@@ -20,5 +23,8 @@
   "homepage": "https://github.com/domain-js/kafka#readme",
   "devDependencies": {
     "jest": "^24.9.0"
+  },
+  "dependencies": {
+    "kafka-node": "^5.0.0"
   }
 }
