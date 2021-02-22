@@ -1,9 +1,8 @@
-const kafka = require("kafka-node");
-
 const INTERVAL = 3 * 1000;
 const QUEUE_MAX_LENGTH = 10;
 
-function Main(cnf, { kafkaNode, async, errors, U, logger }) {
+function Main(cnf, { kafka, U, async, errors, logger }) {
+  const { sleep } = U;
   const checkQueueLength = async (consumer, queue) => {
     if (queue.length() < (cnf.kafka.queue_max_length || QUEUE_MAX_LENGTH)) return;
     consumer.pause();
@@ -38,6 +37,7 @@ function Main(cnf, { kafkaNode, async, errors, U, logger }) {
         return;
       }
       queue.push(msg);
+      // 每个十秒检查一次队列长度
       async.forever(async () => {
         await sleep(10 * 1000);
         try {
@@ -71,6 +71,6 @@ function Main(cnf, { kafkaNode, async, errors, U, logger }) {
   return { consumer, producer };
 }
 
-Main.Deps = ["logger", "utils"];
+Main.Deps = ["kafka", "async", "logger", "utils"];
 
 module.exports = Main;
