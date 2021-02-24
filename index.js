@@ -1,8 +1,11 @@
+const kafka = require("kafka-node");
+const async = require("async");
+
 const INTERVAL = 3 * 1000;
 const QUEUE_MAX_LENGTH = 10;
 
-function Main(cnf, { kafka, U, async, errors, logger }) {
-  const { sleep } = U;
+function Main(cnf, { U, errors, logger }) {
+  const { sleep, tryCatchLog } = U;
   const checkQueueLength = async (consumer, queue) => {
     if (queue.length() < (cnf.kafka.queue_max_length || QUEUE_MAX_LENGTH)) return;
     consumer.pause();
@@ -16,8 +19,8 @@ function Main(cnf, { kafka, U, async, errors, logger }) {
     logger.info("consumer.resume");
     consumer.resume();
   };
-
-  const consumer = ({ topics, kafkaHost, groupId,  }, queue) => {
+ 
+  const consumer = ({ topics, kafkaHost, groupId }, queue) => {
     const consumerGroupOptions = {
       kafkaHost,
       groupId,
@@ -53,24 +56,25 @@ function Main(cnf, { kafka, U, async, errors, logger }) {
     });
   };
 
-  const producer = ({ kafkaHost, topic, partition }, queue) => {
+  const producer = ({ kafkaHost, topic, partition }) => {
     const client = new kafka.KafkaClient({ kafkaHost });
-    const producer = new kafka.Producer(client);
-    const hanlde = async (message) => {
+    const p = new kafka.Producer(client);
+    const hanlde = async (messages) => {
       const payloads = [
-        { topic, message, partition, },
+        { topic, messages, partition, },
       ];
-      producer.send(payloads, function (err, data) {
-        if (err) logger.error(err, msg.value);
+      p.send(payloads, (err) => {
+        if (err) logger.error(err);
       });
     };
-    producer.on("ready", () => {
-      queue(tryCatchLog((hanlde, logger.error), 1));
-    });
+    const queue = async.queue(tryCatchLog(hanlde, logger.error), 1);
+    queue.pause();
+    p.on("ready", () => queue.resume());
+    return queue;
   };
   return { consumer, producer };
 }
 
-Main.Deps = ["kafka", "async", "logger", "utils"];
+Main.Deps = ["logger", "utils"];
 
 module.exports = Main;
